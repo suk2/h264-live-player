@@ -76,13 +76,20 @@ var WSAvcPlayer = new Class({
       if(typeof evt.data == "string")
         return this.cmd(JSON.parse(evt.data));
 
-      this.pktnum++;
+      // this.pktnum++;
       var frame = new Uint8Array(evt.data);
       //log("[Pkt " + this.pktnum + " (" + evt.data.byteLength + " bytes)]");
       //this.decode(frame);
-      framesList.push(frame);
+      if (framesList.length < 10) {
+        framesList.push(frame);
+        return;
+      }
+      if ((data[4] & 31) > 4) {
+        // drop p frames
+        framesList = framesList.filter(frame => (frame[4] & 31) > 4);
+        framesList.push(frame);
+      }
     };
-
 
     var running = true;
 
@@ -91,18 +98,21 @@ var WSAvcPlayer = new Class({
         return;
 
 
-      if(framesList.length > 10) {
-        log("Dropping frames", framesList.length);
-        framesList = [];
-      }
+      // if(framesList.length > 10) {
+      //   log("Dropping frames", framesList.length);
+      //   framesList = [];
+      // }
 
       var frame = framesList.shift();
 
 
-      if(frame)
-        this.decode(frame);
+      if(frame) {
+        // this.decode(frame);
+        this.avc.decode(frame);
+      }
 
       requestAnimationFrame(shiftFrame);
+
     }.bind(this);
 
 
